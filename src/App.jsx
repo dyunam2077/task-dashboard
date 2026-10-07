@@ -258,8 +258,7 @@ function App() {
 
   function navigatePassage(index) {
     setActivePassageIndex(Math.min(Math.max(index, 0), activeExam.passages.length - 1));
-    document.querySelector('.exam-workspace')?.scrollTo?.({ top: 0, behavior: 'smooth' });
-    document.querySelector('.question-scroll')?.scrollTo?.({ top: 0, behavior: 'smooth' });
+    document.querySelector('.exam-workspace')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   }
 
   function jumpToQuestion(number) {
