@@ -23,6 +23,9 @@ body {
   min-height: 100vh;
   margin: 0;
   background: #f4f6f5;
+  overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -44,6 +47,7 @@ a:focus-visible {
 
 .app-shell {
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 .topbar {
@@ -419,11 +423,11 @@ a:focus-visible {
 }
 
 .exam-workspace {
-  height: min(66vh, 690px);
-  min-height: 450px;
+  height: auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(390px, .89fr);
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid #e5ebe7;
   border-radius: 0 0 10px 10px;
   background: #fff;
@@ -475,9 +479,11 @@ a:focus-visible {
 }
 
 .reading-text {
-  flex: 1;
+  flex: none;
   padding: 16px 31px 30px;
-  overflow: auto;
+  overflow: visible;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   color: #48544f;
   scrollbar-color: #d5e0da transparent;
   scrollbar-width: thin;
@@ -567,9 +573,11 @@ a:focus-visible {
 }
 
 .question-scroll {
-  flex: 1;
+  flex: none;
   padding: 13px 16px 26px;
-  overflow-y: auto;
+  overflow: visible;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   scrollbar-color: #d5e0da transparent;
   scrollbar-width: thin;
