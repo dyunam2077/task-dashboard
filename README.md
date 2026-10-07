@@ -1,105 +1,81 @@
-# Task Dashboard
+# VSTEP Reading Practice
 
-A task management application that allows users to create, organize, and filter tasks using a modern, responsive UI built with React.
+A local-first VSTEP reading practice app with a split-pane exam workspace, passage navigation, answer feedback, explanations, and reusable exam imports.
 
-> **Note:** This application is intended for demonstration purposes only and is not meant for production use.
+The starter practice set is based on the supplied VSTEP PDF. That document contains one complete reading paper with four passages and 40 questions, followed by its answer key and explanations. It does not include ten complete papers, so the app starts with the content present in the source and lets you add more sets.
 
-## Features
+## Run locally
 
-- **Task Management**: Create, complete, and delete tasks
-- **Task Tags**: Organize tasks with customizable tags
-- **Task Lists**: Create multiple lists with custom filters
-- **List Filters**: Filter tasks by tags or completion status
-- **Animations**: Smooth transitions and animations using Framer Motion
-- **Responsive Design**: Works on desktop and mobile devices
+```sh
+npm ci
+npm start
+```
 
-## Technology Stack
+Open [http://localhost:3000](http://localhost:3000). Use `npm test` to run the test suite and `npm run build` to create a production build.
 
-- **React**: Modern React with functional components and hooks
-- **Tailwind CSS**: Utility-first CSS framework for styling
-- **Framer Motion**: Animation library for React
-- **Vite**: Fast, modern build tool and development server
-- **Vitest**: Testing framework compatible with Vite
+## Deploy to GitHub Pages
 
-## Getting Started
+The `Deploy VSTEP Reading to GitHub Pages` workflow runs tests, builds the site with the correct repository subpath, and deploys it when changes reach `main`. You can also start it from the repository’s **Actions** tab using **Run workflow**. In **Settings → Pages**, set the build and deployment source to **GitHub Actions**.
 
-### Prerequisites
+After the first successful deployment, the site will be available at [https://dyunam2077.github.io/task-dashboard/](https://dyunam2077.github.io/task-dashboard/). Pull requests and pushes to feature branches do not publish the site.
 
-- Node.js (v18+)
-- npm (v10+)
+## Add practice sets
 
-### Installation
+Choose **Import set** in the app. Download the exam and answer templates, fill them with your source material, then select one or more exam JSON files and their answer/explanation JSON files together. Include a matching `examTitle` (or `examId`) on each separate answer file when importing multiple sets. A single unlabelled answer file can accompany one exam. Imported sets and answers are stored in this browser only; use **Export** to save a portable copy.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/task-dashboard.git
-   cd task-dashboard
-   ```
+Imports use this structured JSON format rather than guessing at arbitrary PDF or Word layouts. Copy the original passage, question, answer, and explanation text into the templates so you can review it before importing.
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+An exam file has a `passages` array. Each passage contains its source text and questions:
 
-3. Start the development server:
-   ```bash
-   npm start
-   ```
+```json
+{
+  "title": "Practice set 2",
+  "level": "B1–B2–C1",
+  "durationMinutes": 60,
+  "passages": [
+    {
+      "title": "Passage 1",
+      "questionRange": "1–10",
+      "text": "Paste the reading passage here.",
+      "questions": [
+        {
+          "number": 1,
+          "prompt": "Write the question here.",
+          "choices": [
+            { "label": "A", "text": "First option" },
+            { "label": "B", "text": "Second option" },
+            { "label": "C", "text": "Third option" },
+            { "label": "D", "text": "Fourth option" }
+          ],
+          "correctAnswer": "B",
+          "explanation": "Paste the source explanation verbatim."
+        }
+      ]
+    }
+  ]
+}
+```
 
-4. Open [http://localhost:3000](http://localhost:3000) to view the app
+Answers and explanations can instead be supplied in a second file, keyed by the question numbers used in the exam:
 
-### Available Scripts
+```json
+{
+  "type": "vstep-answers",
+  "examTitle": "Practice set 2",
+  "answers": [
+    {
+      "number": 1,
+      "answer": "B",
+      "explanation": "Paste the source explanation verbatim."
+    }
+  ]
+}
+```
 
-- `npm start` - Start the development server
-- `npm start:hydrated` - Start the development server with data hydration enabled
-- `npm run build` - Build for production
-- `npm run build:hydrated` - Build for production with data hydration enabled
-- `npm run build:clean` - Build for production with data hydration explicitly disabled
-- `npm run preview` - Preview the production build locally
-- `npm run preview:hydrated` - Preview the production build with data hydration enabled
-- `npm test` - Run tests with Vitest
+Each question needs four choices labeled A–D, a correct answer, and a non-empty explanation. Question numbers must be unique within an exam. Imported files are parsed in the browser and are not uploaded to a server.
 
-### Data Hydration
+## Stack
 
-The application supports pre-populating the app with sample data through an optional hydration process:
-
-- Sample data is defined in `src/data/initialData.json`
-- Hydration can be enabled/disabled using the `VITE_ENABLE_DATA_HYDRATION` environment variable
-- Use the convenience scripts for development with hydration:
-  - `npm run start:hydrated` - Development with sample data
-  - `npm run build:hydrated` - Production build with sample data
-  - `npm run build:clean` - Production build without sample data
-- GitHub Actions deployment automatically enables hydration for the production build
-
-## Architecture
-
-### State Management
-
-The application uses React Context for state management:
-
-- **TaskContext**: Manages tasks state and operations (add, toggle, delete)
-- **TagContext**: Manages tags and their relationships with tasks
-- **ListContext**: Manages task lists and filtering logic
-
-### UI Components
-
-The application features several key components:
-- **TaskList**: Renders a list of tasks
-- **TaskItem**: Renders an individual task
-- **TaskBoard**: Manages multiple task lists
-- **TagManager**: Interface for creating and managing tags
-- **GlobalTaskForm**: Form for creating new tasks
-- **ListAddTask**: Form for adding tasks to specific lists
-- **TaskListConfig**: Interface for configuring task lists
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- React 19 and Vite
+- Vitest and Testing Library
+- Heroicons
