@@ -21,19 +21,21 @@ After the first successful deployment, the site will be available at [https://dy
 
 ## Add practice sets
 
-Choose **Import set** in the app. Download the exam and answer templates, fill them with your source material, then select one or more exam JSON files and their answer/explanation JSON files together. Include a matching `examTitle` (or `examId`) on each separate answer file when importing multiple sets. A single unlabelled answer file can accompany one exam. Imported sets and answers are stored in this browser only; use **Export** to save a portable copy.
+Choose **Import set** and select one or more `.pdf` files. Only PDFs are accepted. The browser extracts text from digital PDFs and runs English OCR on scanned pages, then shows a preview where you can switch between detected sets, correct question text/options/answers, and inspect the original page text. Confirm the preview to save the sets in this browser. Use **Export** to download a set in the app's JSON data format.
 
-Imports use this structured JSON format rather than guessing at arbitrary PDF or Word layouts. Copy the original passage, question, answer, and explanation text into the templates so you can review it before importing.
+The parser recognizes headings such as `Reading Passage 1`, numbered questions (`1.`, `1)`, or `Question 1`), A–D options, and an `Answer Key` section. It splits bundles at `Test N` / `Practice Test` headings and repeated `Passage 1` headings after earlier passages. Since PDF layouts and answer-key styles vary, review the required preview—especially OCR text, missing options, and absent answer keys—before importing. Explanations are only extracted when they follow detected answers in the answer-key section; verify them against the source PDF.
 
-An exam file has a `passages` array. Each passage contains its source text and questions:
+Imported sets keep the same internal schema used by the practice UI. Answers may be `null` when no key was detected; those questions are not automatically marked correct or incorrect.
 
 ```json
 {
-  "title": "Practice set 2",
+  "id": "practice-test-1",
+  "title": "Practice Test 1",
   "level": "B1–B2–C1",
   "durationMinutes": 60,
   "passages": [
     {
+      "id": "passage-1",
       "title": "Passage 1",
       "questionRange": "1–10",
       "text": "Paste the reading passage here.",
@@ -47,8 +49,8 @@ An exam file has a `passages` array. Each passage contains its source text and q
             { "label": "C", "text": "Third option" },
             { "label": "D", "text": "Fourth option" }
           ],
-          "correctAnswer": "B",
-          "explanation": "Paste the source explanation verbatim."
+          "correctAnswer": null,
+          "explanation": ""
         }
       ]
     }
@@ -56,23 +58,13 @@ An exam file has a `passages` array. Each passage contains its source text and q
 }
 ```
 
-Answers and explanations can instead be supplied in a second file, keyed by the question numbers used in the exam:
+### PDF.js and OCR assets
 
-```json
-{
-  "type": "vstep-answers",
-  "examTitle": "Practice set 2",
-  "answers": [
-    {
-      "number": 1,
-      "answer": "B",
-      "explanation": "Paste the source explanation verbatim."
-    }
-  ]
-}
-```
+- `pdfjs-dist` and `tesseract.js` are installed with `npm ci`. Vite emits the PDF.js worker and Tesseract worker as assets via their `?url` imports; no separate worker-copy step is needed.
+- Text PDFs need no OCR download. For scanned pages, Tesseract is loaded on demand and retrieves the English LSTM model and OCR core from the Tesseract.js jsDelivr endpoints on first use. OCR therefore needs network access.
+- For an offline/self-hosted deployment, copy the matching `tesseract.js-core` `.wasm.js` and `.wasm` runtime files from `node_modules/tesseract.js-core/` into a public folder (for example `public/tesseract-core/`), and place `eng.traineddata.gz` in `public/tessdata/`. Build with `VITE_TESSERACT_CORE_PATH` and `VITE_TESSERACT_LANG_PATH` set to those served directories, including the site's Pages base path when applicable (for this repository, `/task-dashboard/tesseract-core` and `/task-dashboard/tessdata`). Ensure the core directory contains the SIMD LSTM runtime selected by Tesseract.js and the matching `.wasm` file. The English model can be downloaded from the official `@tesseract.js-data/eng` package or the Tesseract.js data CDN.
 
-Each question needs four choices labeled A–D, a correct answer, and a non-empty explanation. Question numbers must be unique within an exam. Imported files are parsed in the browser and are not uploaded to a server.
+The uploaded PDFs are processed in the browser and are not sent to an application server. Each page is released after processing; OCR is performed sequentially and can be cancelled.
 
 ## Stack
 

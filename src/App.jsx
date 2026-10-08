@@ -7,10 +7,9 @@ import {
   BookOpenIcon,
   CheckCircleIcon,
   ClockIcon,
-  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { vstepSample } from './data/vstepSample';
-import { createAnswerTemplate, createImportTemplate, importExamDocuments } from './features/reading/examLibrary';
+import PdfImportDialog from './features/reading/PdfImportDialog';
 
 const LIBRARY_KEY = 'vstep-reading-library-v1';
 const PROGRESS_KEY = 'vstep-reading-progress-v1';
@@ -38,120 +37,6 @@ function downloadJson(filename, content) {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
-}
-
-function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') {
-        reject(new Error(`Could not read ${file.name} as text.`));
-        return;
-      }
-      resolve(reader.result);
-    };
-    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
-    reader.readAsText(file);
-  });
-}
-
-function ImportDialog({ onClose, onImport }) {
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [error, setError] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
-  const inputRef = useRef(null);
-
-  async function handleImport() {
-    if (!selectedFiles.length) {
-      setError('Choose an exam JSON file to import.');
-      return;
-    }
-
-    setIsImporting(true);
-    setError('');
-    try {
-      const documents = await Promise.all(selectedFiles.map(async (file) => {
-        const contents = await readFileAsText(file);
-        try {
-          return JSON.parse(contents);
-        } catch (parseError) {
-          if (!(parseError instanceof SyntaxError)) throw parseError;
-          throw new Error(`${file.name} is not valid JSON. Use the template to check its format.`);
-        }
-      }));
-      onImport(importExamDocuments(documents));
-    } catch (importError) {
-      setError(importError.message);
-    } finally {
-      setIsImporting(false);
-    }
-  }
-
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose();
-    }}>
-      <section className="import-dialog" role="dialog" aria-modal="true" aria-labelledby="import-title">
-        <div className="dialog-heading">
-          <div>
-            <span className="eyebrow">BUILD YOUR LIBRARY</span>
-            <h2 id="import-title">Import practice sets</h2>
-          </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="Close import dialog">
-            <XMarkIcon />
-          </button>
-        </div>
-        <p className="dialog-copy">
-          Import multiple exams and their answer/explanation JSON files together. Match each separate answer
-          file by exam title; everything stays in this browser.
-        </p>
-        <button className="upload-dropzone" type="button" onClick={() => inputRef.current?.click()}>
-          <span className="upload-icon"><ArrowUpTrayIcon /></span>
-          <strong>{selectedFiles.length ? `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} selected` : 'Choose exam files'}</strong>
-          <span>JSON files · one or more exams and matching answer keys</span>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".json,application/json"
-            multiple
-            onChange={(event) => {
-              setSelectedFiles(Array.from(event.target.files || []));
-              setError('');
-            }}
-            hidden
-          />
-        </button>
-        {selectedFiles.length > 0 && (
-          <div className="selected-files">
-            {selectedFiles.map((file) => (
-              <span className="file-chip" key={`${file.name}-${file.size}`}>{file.name}</span>
-            ))}
-          </div>
-        )}
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="dialog-actions">
-          <div className="template-actions">
-            <button className="button button-quiet" type="button" onClick={() => downloadJson('vstep-exam-template.json', createImportTemplate())}>
-              <ArrowDownTrayIcon />
-              Exam template
-            </button>
-            <button className="button button-quiet" type="button" onClick={() => downloadJson('vstep-answers-template.json', createAnswerTemplate())}>
-              <ArrowDownTrayIcon />
-              Answer template
-            </button>
-          </div>
-          <button className="button button-primary" type="button" onClick={handleImport} disabled={isImporting}>
-            {isImporting ? 'Importing…' : 'Import set'}
-            {!isImporting && <ArrowRightIcon />}
-          </button>
-        </div>
-        <p className="template-note">
-          Add <code>examTitle</code> to each separate answer file when importing multiple sets. Each answer entry
-          uses its question <code>number</code>, <code>answer</code>, and source <code>explanation</code>.
-        </p>
-      </section>
-    </div>
-  );
 }
 
 function App() {
@@ -402,10 +287,12 @@ function App() {
             <div className="question-scroll">
               {currentPassage.questions.map((question) => {
                 const selected = currentAnswers[question.number];
-                const isCorrect = selected === question.correctAnswer;
+                const hasAnswerKey = ['A', 'B', 'C', 'D'].includes(question.correctAnswer);
+                const isCorrect = hasAnswerKey && selected === question.correctAnswer;
+                const isIncorrect = hasAnswerKey && selected && !isCorrect;
                 return (
                   <section
-                    className={`question-card ${selected ? (isCorrect ? 'answer-correct' : 'answer-incorrect') : ''}`}
+                    className={`question-card ${selected ? (isCorrect ? 'answer-correct' : isIncorrect ? 'answer-incorrect' : '') : ''}`}
                     id={`question-${activeExam.id}-${question.number}`}
                     key={question.number}
                   >
@@ -416,10 +303,10 @@ function App() {
                     <div className="answer-options" role="radiogroup" aria-label={`Answer choices for question ${question.number}`}>
                       {question.choices.map((choice) => {
                         const selectedChoice = selected === choice.label;
-                        const isAnswer = selected && question.correctAnswer === choice.label;
+                        const isAnswer = selected && hasAnswerKey && question.correctAnswer === choice.label;
                         return (
                           <button
-                            className={`answer-option ${selectedChoice ? 'is-selected' : ''} ${isAnswer ? 'is-correct' : ''} ${selectedChoice && !isCorrect ? 'is-wrong' : ''}`}
+                            className={`answer-option ${selectedChoice ? 'is-selected' : ''} ${isAnswer ? 'is-correct' : ''} ${selectedChoice && isIncorrect ? 'is-wrong' : ''}`}
                             type="button"
                             role="radio"
                             aria-checked={selectedChoice}
@@ -434,12 +321,12 @@ function App() {
                       })}
                     </div>
                     {selected && (
-                      <div className={`explanation-box ${isCorrect ? 'explanation-correct' : 'explanation-incorrect'}`} aria-live="polite">
+                      <div className={`explanation-box ${!hasAnswerKey ? '' : isCorrect ? 'explanation-correct' : 'explanation-incorrect'}`} aria-live="polite">
                         <div className="explanation-heading">
                           <CheckCircleIcon />
-                          <strong>{isCorrect ? 'That’s right' : `Not quite — the answer is ${question.correctAnswer}`}</strong>
+                          <strong>{!hasAnswerKey ? 'No answer key detected' : isCorrect ? 'That’s right' : `Not quite — the answer is ${question.correctAnswer}`}</strong>
                         </div>
-                        <p>{question.explanation}</p>
+                        <p>{question.explanation || (!hasAnswerKey ? 'This answer has not been marked as correct or incorrect.' : '')}</p>
                       </div>
                     )}
                   </section>
@@ -464,7 +351,7 @@ function App() {
         {storageWarning && <p className="storage-warning" role="status">{storageWarning}</p>}
       </main>
 
-      {showImport && <ImportDialog onClose={() => setShowImport(false)} onImport={handleImport} />}
+      {showImport && <PdfImportDialog onClose={() => setShowImport(false)} onImport={handleImport} />}
       {toast && <div className="toast" role="status"><CheckCircleIcon />{toast}</div>}
     </div>
   );
