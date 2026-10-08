@@ -64,6 +64,69 @@ lO. D - The opening hours list a six o'clock closing time.`;
     expect(question.warnings).toEqual([]);
   });
 
+  it('parses VSTEP layouts with inline choices, repeated footer headings, Vietnamese keys, and explanations', () => {
+    const vstepText = `<<<PAGE_BREAK:1:text>>>
+PASSAGE 1
+Questions 1-2
+This is the first reading passage about planning for a trip.
+04B What is needed for the journey?
+A. food B. a table C. a bed D. a Jeep
+Which item is mentioned in the passage?
+A. water B. a book C. a map D. a phone
+PASSAGE 1
+<<<PAGE_BREAK:2:text>>>
+PASSAGE 2
+Questions 11-11
+This is the second reading passage.
+What does the author recommend?
+A. leave early B. stay home C. bring water D. travel alone
+ĐÁP ÁN
+1. B 2. A 1 1. C
+GIỎI THÍCH ĐÁP ÁN
+What is needed for the journey?
+The passage says to bring food and water.
+=> Đáp án B là đáp án đúng
+Which item is mentioned in the passage?
+The opening paragraph mentions water.
+=> Đáp án A là đáp án đúng
+What does the author recommend?
+The passage recommends bringing water.
+=> Đáp án C là đáp án đúng`;
+    const [exam] = parsePdfExamText(vstepText, { filename: 'vstep.pdf' });
+
+    expect(exam.passages).toHaveLength(2);
+    expect(exam.passages.map((passage) => passage.questions.map((question) => question.number)))
+      .toEqual([[1, 2], [11]]);
+    expect(exam.passages[0].questions[0]).toMatchObject({
+      prompt: 'What is needed for the journey?',
+      correctAnswer: 'B',
+      explanation: 'What is needed for the journey?\nThe passage says to bring food and water.\n=> Đáp án B là đáp án đúng',
+      choices: [
+        { label: 'A', text: 'food' },
+        { label: 'B', text: 'a table' },
+        { label: 'C', text: 'a bed' },
+        { label: 'D', text: 'a Jeep' },
+      ],
+    });
+    expect(exam.passages[1].questions[0].correctAnswer).toBe('C');
+  });
+
+  it('keeps a choice block when OCR misses the question text and flags it for review', () => {
+    const [exam] = parsePdfExamText(`PASSAGE 1
+Questions 1-1
+A passage with a damaged question line.
+A. First
+B. Second
+C. Third
+D. Fourth`);
+
+    expect(exam.passages[0].questions[0]).toMatchObject({
+      number: 1,
+      prompt: '',
+      warnings: ['Question text could not be detected.'],
+    });
+  });
+
   it('splits multiple sets and reports missing keys/options; rejects unrecognizable PDFs', () => {
     const threeTests = [1, 2, 3].map((test) => `Test ${test}
 Reading Passage 1

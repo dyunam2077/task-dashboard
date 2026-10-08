@@ -33,6 +33,7 @@ describe('PDF extraction pipeline', () => {
   let pages;
   let ocrLogger;
   let canvases;
+  let loadingTaskDestroy;
 
   beforeEach(() => {
     pages = [
@@ -46,13 +47,13 @@ describe('PDF extraction pipeline', () => {
     ];
     ocrLogger = null;
     canvases = [];
+    loadingTaskDestroy = vi.fn(async () => {});
     vi.mocked(pdfjs.getDocument).mockReturnValue({
       promise: Promise.resolve({
         numPages: pages.length,
         getPage: vi.fn(async (number) => pages[number - 1]),
-        destroy: vi.fn(),
       }),
-      destroy: vi.fn(),
+      destroy: loadingTaskDestroy,
     });
     vi.mocked(createWorker).mockImplementation(async (_language, _oem, options) => {
       ocrLogger = options.logger;
@@ -91,6 +92,7 @@ describe('PDF extraction pipeline', () => {
       confidence: 'low',
     });
     expect(createWorker).toHaveBeenCalledTimes(1);
+    expect(loadingTaskDestroy).toHaveBeenCalledTimes(1);
     expect(pages.map((page) => page.cleanup)).toHaveLength(3);
     expect(pages.every((page) => page.cleanup.mock.calls.length === 1)).toBe(true);
     expect(canvases).toHaveLength(2);
@@ -104,9 +106,8 @@ describe('PDF extraction pipeline', () => {
       promise: Promise.resolve({
         numPages: 2,
         getPage: vi.fn(async (number) => pages[number - 1]),
-        destroy: vi.fn(),
       }),
-      destroy: vi.fn(),
+      destroy: loadingTaskDestroy,
     });
     vi.mocked(createWorker).mockImplementation(async () => ({
       recognize: vi.fn(async () => {

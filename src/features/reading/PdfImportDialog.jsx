@@ -31,6 +31,7 @@ function toExamSchema(exam) {
 
 function questionWarnings(question) {
   const warnings = [];
+  if (!question.prompt.trim()) warnings.push('Missing question text');
   if (!question.correctAnswer) warnings.push('Missing answer key');
   if (question.choices.some((choice) => !choice.text.trim())) warnings.push('Missing option');
   if (question.confidence === 'low') warnings.push('Low OCR confidence');

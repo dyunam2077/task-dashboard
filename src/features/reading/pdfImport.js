@@ -122,9 +122,7 @@ export async function extractPdfBatch(files, onProgress = () => {}, signal) {
     const loadingTask = activeLoadingTask;
     activeLoadingTask = null;
     if (loadingTask) void loadingTask.destroy().catch(() => {});
-    const pdf = activeDocument;
     activeDocument = null;
-    if (pdf) void pdf.destroy().catch(() => {});
   };
   signal?.addEventListener('abort', handleAbort, { once: true });
 
@@ -162,7 +160,6 @@ export async function extractPdfBatch(files, onProgress = () => {}, signal) {
         const loadingTask = pdfjs.getDocument({ data, isEvalSupported: false });
         activeLoadingTask = loadingTask;
         activeDocument = await loadingTask.promise;
-        activeLoadingTask = null;
         const pages = [];
         const pageCount = activeDocument.numPages;
 
@@ -236,14 +233,12 @@ export async function extractPdfBatch(files, onProgress = () => {}, signal) {
         fileResult = { fileName: file.name, error: error.message || 'Could not read this PDF.' };
       } finally {
         const loadingTask = activeLoadingTask;
-        const pdf = activeDocument;
         activeLoadingTask = null;
         activeDocument = null;
         const cleanupErrors = [];
-        for (const resource of [loadingTask, pdf]) {
-          if (!resource) continue;
+        if (loadingTask) {
           try {
-            await resource.destroy();
+            await loadingTask.destroy();
           } catch (error) {
             cleanupErrors.push(error.message || 'Could not release a PDF resource.');
           }
